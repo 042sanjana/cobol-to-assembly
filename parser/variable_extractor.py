@@ -3,34 +3,66 @@ import re
 
 class VariableExtractor:
 
-    keywords = {
+    def __init__(self):
 
-        "LOAD",
+        self.instructions = {
 
-        "STORE",
+            "LOAD",
+            "STORE",
+            "CALL",
+            "BR",
+            "BNE",
+            "BEQ",
+            "ADD",
+            "SUB",
+            "MULT",
+            "DIV",
+            "COMPARE",
+            "RETURN",
+            "DISPLAY",
+            "STOP",
+            "END"
 
-        "ADD",
+        }
 
-        "SUB",
+    def extract(self, code):
 
-        "MULT",
+        variables = []
 
-        "MOVE"
+        instructions = []
 
-    }
+        registers = []
 
-    def extract(self, lines):
+        for line in code:
 
-        variables = set()
+            words = re.findall(r"[A-Z_][A-Z0-9_]*", line)
 
-        for line in lines:
+            for word in words:
 
-            tokens = re.findall(r"[A-Z_]+", line)
+                # Assembly instruction
+                if word in self.instructions:
 
-            for token in tokens:
+                    if word not in instructions:
+                        instructions.append(word)
 
-                if token not in self.keywords:
+                # Register
+                elif re.fullmatch(r"R\d+", word):
 
-                    variables.add(token)
+                    if word not in registers:
+                        registers.append(word)
 
-        return sorted(list(variables))
+                # Variable
+                else:
+
+                    if word not in variables:
+                        variables.append(word)
+
+        return {
+
+            "variables": variables,
+
+            "instructions": instructions,
+
+            "registers": registers
+
+        }

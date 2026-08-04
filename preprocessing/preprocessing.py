@@ -11,64 +11,57 @@ from knowledge.chroma_manager import collection
 
 class Preprocessor:
 
-    def process(self, filepath):
+    def process(self, filepath, upload_id):
 
         parser = AssemblyParser(filepath)
-
         lines = parser.read_file()
 
         splitter = ModuleSplitter()
-
         modules = splitter.split(lines)
 
         extractor = VariableExtractor()
-
         dependency = DependencyAnalyzer()
 
         module_service = ModuleService()
 
         embedder = EmbeddingService()
 
-        result = {}
+        analysis = {}
 
         for module_name, code in modules.items():
 
-            variables = extractor.extract(code)
+            parsed = extractor.extract(code)
+
+            variables = parsed["variables"]
+            instructions = parsed["instructions"]
+            registers = parsed["registers"]
 
             dependencies = dependency.extract(code)
 
-            # -----------------------------
-            # Save metadata in SQLite
-            # -----------------------------
+            # Save module metadata
             module_service.save(
-                module_name,
-                variables,
-                dependencies
+                upload_id=upload_id,
+                module_name=module_name,
+                variables=variables,
+                dependencies=dependencies
             )
 
-            # -----------------------------
-            # Convert module to text
-            # -----------------------------
             module_code = "\n".join(code)
 
-            # -----------------------------
-            # Create embedding
-            # -----------------------------
             vector = embedder.create_embedding(module_code)
 
-            # -----------------------------
-            # Store embedding in ChromaDB
-            # -----------------------------
             collection.add(
                 ids=[module_name],
                 embeddings=[vector],
                 documents=[module_code]
             )
 
-            result[module_name] = {
+            analysis[module_name] = {
                 "variables": variables,
+                "instructions": instructions,
+                "registers": registers,
                 "dependencies": dependencies,
                 "code": code
             }
 
-        return result
+        return analysis
